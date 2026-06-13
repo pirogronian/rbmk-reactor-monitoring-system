@@ -30,7 +30,7 @@ class Reactor:
 
         rods = r.rpop("rods_movement")
         water_flow = r.rpop("water_flow")
-        # in_water_temp = r.pop("in_water_temp")
+        in_water_temp = r.rpop("in_water_temp")
 
 
         az5_value =  r.rpop("az5")
@@ -163,7 +163,6 @@ class Reactor:
 
         self.orm_value = 211.0
         if self.thermal_power_mw <= 160:
-            print("test2")
             self.az5 = None
             self.az5_list = []
             r.delete("az5")

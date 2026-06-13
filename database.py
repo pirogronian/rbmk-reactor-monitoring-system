@@ -3,10 +3,9 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from datetime import datetime, UTC
 import time
 import pandas as pd
-import keyboard
-import threading
 from dotenv import load_dotenv
 import os
+
 load_dotenv()
 
 class InfluxBase:
@@ -39,15 +38,6 @@ class InfluxBase:
 # Which means it will stop the loop sending the information and connection will close.
 # This is important, because we do not want to keep opening and closing the connection each loop.
 
-stop = threading.Event()
-
-def listen():
-    keyboard.wait("q")
-    stop.set()
-
-threading.Thread(target=listen, daemon= True).start()
-
-
 
 class Data_Write(InfluxBase):
     """Send data to database"""
@@ -79,7 +69,7 @@ class Data_Write(InfluxBase):
         )
 
         print(point.to_line_protocol())
-        with write.client.write_api(write_options=SYNCHRONOUS) as write.write_api:
+        with self.client.write_api(write_options=SYNCHRONOUS) as self.write_api:
             self.send_data(point)
 
 
@@ -186,64 +176,26 @@ class Data_Read(InfluxBase):
         self.conv_data['time'] = time_list
 
         self.df = pd.DataFrame(self.conv_data)
-        # self.df.to_parquet('Influx_RBML_data.parquet')
-
-    def take_single_data(self):
-        """Takes a data of a single field from latest record from database"""
-
-        self.query = f'''
-                    from(bucket: "{self.bucket}")
-                      |> range(start: -48h)
-                      |> filter(fn: (r) => r._measurement == "rbmk_reactor_metrics")
-                      |> filter(fn: (r) => r._field == "thermal_power_mw")
-                      |> last()
-                '''
-        self.query_api = self.client.query_api()
-        try:
-            results = self.query_api.query(self.query, org=self.org)
-
-            for table in results:
-                for record in table.records:
-                    self.power_mw = record.get_value()
-        except Exception as e:
-            print("Write error: ", e)
-
-
-# data = {
-#     "fuel_reactivity": 5.905,
-#     "orm_value": 101.0,
-#     "partially_inserted": 0.0,
-#     "inlet_temp_c": 270.0,
-#     "outlet_temp_c": 284.0,
-#     "coolant_flow_m3h": 45000.0,
-#     "tau": 10.0,
-#     "thermal_power_mw": 3200.0,
-#     "reactivity_delta": 0.0,
-#     "xenon_level": 1.0,
-#     "neutron_flux_pct": 95.0,
-#     "severity_level": 1.0,
-#     "subsystem": "a",
-#     "alarm_message": "b",
-# }
 
 
 
 
 
-# approve = input("Type 'y' if you want to write data, type 'n' if you don't: ")
 
-# if approve == "y":
-with Data_Write() as write:
-    write.initial_data()
-    time.sleep(2)
-# #
-# approve = input("Type 'y' if you want to download data, type 'n' if you don't: ")
+
+
+
+#         with Data_Write() as write:
+#             write.initial_data()
+#             time.sleep(2)
 #
-# if approve == "y":
-# with Data_Read() as take:
-#     take.take_data(last="", time_range="120h")
-#     take.influx_to_df()
-#     time.sleep(2)
-#     #take.df.to_parquet('Influx_RBML_data.parquet')
+#
+#
+
+#     with Data_Read() as take:
+#         take.take_data(last="", time_range="4d")
+#         take.influx_to_df()
+#         time.sleep(2)
+#         take.df.to_parquet('Influx_RBML_data.parquet')
 
 

@@ -3,16 +3,17 @@ import database as db
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 
+
 def main():
     last = "|> last()"
-    time_range = "48h"
+    time_range = "5d"
     read = db.Data_Read()
     read.take_data(last, time_range)
     read.influx_to_df()
     reactor = Reactor(**read.conv_data)
     with db.Data_Write() as write:
         with write.client.write_api(write_options=SYNCHRONOUS) as write.write_api:
-            while not db.stop.is_set():
+            while True:
                 reactor_run(reactor, 1.0)
                 print(f"Thermal power main: {reactor.thermal_power_mw}")
                 print("\n")
