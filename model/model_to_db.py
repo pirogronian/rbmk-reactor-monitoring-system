@@ -26,7 +26,8 @@ SEQ_LEN = 30
 INPUT_SIZE = 4  # Number of features
 HIDDEN_SIZE = 64
 NUM_LAYERS = 2
-PARAMS = ["coolant_temp", "neutron_flux", "control_rod_position", "void_fraction"]
+PARAMS = ["thermal_power_mw", "fuel_reactivity", "orm_value", "partially_inserted", 
+"inlet_temp_c", "outlet_temp_c", "coolant_flow_m3h", "v_steam", "xenon_level", "neutron_flux_pct"]
 THRESHOLD = 0.5  # MSE threshold for anomaly detection (reconstruction error)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -41,7 +42,8 @@ try:
         hidden_size=HIDDEN_SIZE,
         num_layers=NUM_LAYERS
     ).to(DEVICE)
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+    checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+    model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     logger.info(f"Model loaded from {MODEL_PATH}")
 except Exception as e:
@@ -81,7 +83,7 @@ def get_recent_window():
         query = f'''
         from(bucket: "{os.getenv("INFLUXDB_BUCKET")}")
           |> range(start: -{SEQ_LEN}m)
-          |> filter(fn: (r) => r._measurement == "reactor_sim")
+          |> filter(fn: (r) => r._measurement == "rbmk_reactor_metrics")
           |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
           |> sort(columns: ["_time"])
         '''
@@ -120,6 +122,7 @@ def compute_reconstruction_error(x):
     except Exception as e:
         logger.error(f"Error computing reconstruction error: {e}")
         return None
+
 
 def main():
     """Main inference loop."""
