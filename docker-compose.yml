@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  model:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pytorch-model-dev
+    image: pytorch-model:latest
+    volumes:
+      - .:/workspace
+      - ./model:/workspace/model
+    working_dir: /workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - model-network
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: influxdb-dev
+    environment:
+      - INFLUXDB_DB=reactor_metrics
+      - INFLUXDB_ADMIN_USER=toptunov
+      - INFLUXDB_ADMIN_PASSWORD=elektrownia4562!@#
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    networks:
+      - model-network
+
+networks:
+  model-network:
+    driver: bridge
+
+volumes:
+  influxdb-data:

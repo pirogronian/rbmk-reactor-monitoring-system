@@ -5,3 +5,4 @@ venv
 test.ipynb
 Influx_RBML_data.parquet
 .devcontainer
+notes.txt

@@ -4,7 +4,7 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 
 def main():
     last = "|> last()"
-    time_range = "48h"
+    time_range = "2000h"
     read = db.Data_Read()
     read.take_data(last, time_range)
     read.influx_to_df()
@@ -28,9 +28,9 @@ def main():
                     "reactivity_delta": reactor.reactivity_delta,
                     "xenon_level": reactor.xenon_level,
                     "neutron_flux_pct": reactor.neutron_flux_pct,
-                    "severity_level": reactor.severity_level,
-                    "subsystem": reactor.subsystem,
-                    "alarm_message": reactor.alarm_message,
+                    #"severity_level": reactor.severity_level,
+                    #"subsystem": reactor.subsystem,
+                    #"alarm_message": reactor.alarm_message,
                 }
                 write.generated_data(**data)
 

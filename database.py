@@ -60,7 +60,7 @@ class Data_Write(InfluxBase):
         """Manually creates data""" 
 
         point = (
-            Point("reactor_metrics_test2")
+            Point("rbmk_reactor_metrics")
             .field("fuel_reactivity", 5.905)
             .field("orm_value", 102.0)
             .field("partially_inserted", 0.0)
@@ -72,9 +72,9 @@ class Data_Write(InfluxBase):
             .field("reactivity_delta", 0.0)
             .field("xenon_level", 1.0)
             .field("neutron_flux_pct", 100.0)
-            .field("severity_level", 0.8)
-            .field("subsystem", "a")
-            .field("alarm_message", "b")
+            #.field("severity_level", 0.8)
+            #.field("subsystem", "a")
+            #.field("alarm_message", "b")
             .time(datetime.now(UTC), WritePrecision.NS)
         )
 
@@ -86,7 +86,7 @@ class Data_Write(InfluxBase):
     def generated_data(self, **data):
         """Takes data and converts to InfluxDB scheme"""
 
-        point = Point("reactor_metrics_test2")
+        point = Point("rbmk_reactor_metrics")
         for key, value in data.items():
             point = point.field(key, value)
 
@@ -120,9 +120,9 @@ class Data_Read(InfluxBase):
 
         self.tables = []
         self.query = f'''
-            from(bucket: "reactor_test")
+            from(bucket: "{self.bucket}")
               |> range(start: -{time_range})
-              |> filter(fn: (r) => r._measurement == "reactor_metrics_test2")
+              |> filter(fn: (r) => r._measurement == "rbmk_reactor_metrics")
               |> filter(fn: (r) =>
                   contains(
                     value: r._field,
@@ -139,9 +139,6 @@ class Data_Read(InfluxBase):
                       "reactivity_delta",
                       "xenon_level",
                       "neutron_flux_pct",
-                      "severity_level",
-                      "subsystem",
-                      "alarm_message"
                     ]
 
                   )
@@ -152,6 +149,7 @@ class Data_Read(InfluxBase):
         self.query_api = self.client.query_api()
         try:
             self.tables = self.query_api.query(self.query, org=self.org)
+            print("Data successfully taken!")
         except Exception as e:
             print("Write error: ", e)
 
@@ -190,7 +188,7 @@ class Data_Read(InfluxBase):
         self.conv_data['time'] = time_list
 
         self.df = pd.DataFrame(self.conv_data)
-
+        print(self.conv_data.keys())
 
         # y_n = input("\nType 'y' if you want to save data to CSV.")
         # if y_n == 'y':
@@ -200,9 +198,9 @@ class Data_Read(InfluxBase):
         """Takes a data of a single field from latest record from database"""
 
         self.query = f'''
-                    from(bucket: "reactor_test")
+                    from(bucket: "{self.bucket}")
                       |> range(start: -48h)
-                      |> filter(fn: (r) => r._measurement == "reactor_metrics_test2")
+                      |> filter(fn: (r) => r._measurement == "rbmk_reactor_metrics")
                       |> filter(fn: (r) => r._field == "thermal_power_mw")
                       |> last()
                 '''
@@ -241,18 +239,17 @@ class Data_Read(InfluxBase):
 # approve = input("Type 'y' if you want to write data, type 'n' if you don't: ")
 
 # if approve == "y":
-'''with Data_Write() as write:
-    write.initial_data()
-    time.sleep(2)'''
-#
+# with Data_Write() as write:
+#     write.initial_data()
+#     time.sleep(2)
+# #
 # approve = input("Type 'y' if you want to download data, type 'n' if you don't: ")
 #
 # if approve == "y":
-'''with Data_Read() as take:
-    take.take_data(last="", time_range="120h")
-    take.take_single_data()
-    take.influx_to_df()
-    time.sleep(2)
-    take.df.to_parquet('Influx_RBML_data.parquet')'''
+# with Data_Read() as take:
+#     take.take_data(last="", time_range="4d")
+#     take.influx_to_df()
+#     time.sleep(2)
+#     take.df.to_parquet('Influx_RBML_data.parquet')
 
 
