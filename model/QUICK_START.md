@@ -320,9 +320,3 @@ EOF
 - Try lower learning_rate: 1e-4 or 1e-5
 
 ---
-
-## 📚 Further Reading
-
-- **detailed explanations**: See `CODE_EXPLANATION.md`
-- **Full documentation**: See `README.md`
-- **Code comments**: Each file has inline comments

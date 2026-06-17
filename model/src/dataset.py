@@ -122,13 +122,7 @@ class RBMKDataLoader:
         data = data[mask]
         print(f"Data shape after cleaning: {data.shape}")
 
-        # Normalize: transform each feature to mean=0, std=1
-        # This helps LSTM learn faster and more stably
-        data_normalized = self.scaler.fit_transform(data)
-
-        print(f"Data normalized. Min: {data_normalized.min():.3f}, Max: {data_normalized.max():.3f}")
-
-        return data_normalized
+        return data
 
     def split_train_val_test(
         self, data: np.ndarray
@@ -177,13 +171,19 @@ class RBMKDataLoader:
         # Load and normalize data
         data = self.load_data()
 
-        # Split into train/val/test while preserving temporal order
+
         train_data, val_data, test_data = self.split_train_val_test(data)
 
-        # Create sliding windows for each split
-        train_dataset = TimeSeriesDataset(train_data, self.sequence_length)
-        val_dataset = TimeSeriesDataset(val_data, self.sequence_length)
-        test_dataset = TimeSeriesDataset(test_data, self.sequence_length)
+        train_data_scaled = self.scaler.fit_transform(train_data)
+
+        # Dane walidacyjne i testowe tylko przekształcamy (transform), nie ucząc na nich skalera!
+        val_data_scaled = self.scaler.transform(val_data)
+        test_data_scaled = self.scaler.transform(test_data)
+
+        #  POPRAWNA WERSJA:
+        train_dataset = TimeSeriesDataset(train_data_scaled, self.sequence_length) # Przekazane SKALOWANE dane!
+        val_dataset = TimeSeriesDataset(val_data_scaled, self.sequence_length)
+        test_dataset = TimeSeriesDataset(test_data_scaled, self.sequence_length)
 
         print(f"\nDataset windows created:")
         print(f"  Train sequences: {len(train_dataset)}")

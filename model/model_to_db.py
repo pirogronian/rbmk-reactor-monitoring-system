@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 SEQ_LEN = 30
-INPUT_SIZE  = 10   # Number of features in PARAMS list
+INPUT_SIZE  = 12   # Number of features in PARAMS list
 HIDDEN_SIZE = 256
 NUM_LAYERS  = 3
 MODEL_TYPE = "lstm"
