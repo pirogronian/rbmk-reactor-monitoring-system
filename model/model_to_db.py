@@ -3,6 +3,7 @@ import numpy as np
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 import joblib
+import pickle
 import time
 from dotenv import load_dotenv
 import os
@@ -13,7 +14,7 @@ import sys
 # Add parent directory to path to import from src
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.model import LSTMAutoencoder
+from src.model import AnomalyDetector
 
 load_dotenv()
 
@@ -23,9 +24,10 @@ logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 SEQ_LEN = 30
-INPUT_SIZE  = 12   # was 4
-HIDDEN_SIZE = 256  # was 64
-NUM_LAYERS  = 3    # was 2
+INPUT_SIZE  = 10   # Number of features in PARAMS list
+HIDDEN_SIZE = 256
+NUM_LAYERS  = 3
+MODEL_TYPE = "lstm"
 PARAMS = ["thermal_power_mw", "fuel_reactivity", "orm_value", "partially_inserted", 
 "inlet_temp_c", "outlet_temp_c", "coolant_flow_m3h", "v_steam", "xenon_level", "neutron_flux_pct"]
 THRESHOLD = 0.5  # MSE threshold for anomaly detection (reconstruction error)
@@ -37,30 +39,35 @@ SCALER_PATH = Path(__file__).parent / "checkpoints" / "scaler.pkl"
 
 # --- Load model ---
 try:
-    model = LSTMAutoencoder(
-        input_size=checkpoint["input_size"],
-        hidden_size=checkpoint["hidden_size"],
-        num_layers=checkpoint["num_layers"],
+    # Load checkpoint
+    checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+    
+    # Create model with same architecture as training
+    model = AnomalyDetector(
+        input_size=INPUT_SIZE,
+        hidden_size=HIDDEN_SIZE,
+        num_layers=NUM_LAYERS,
+        model_type=MODEL_TYPE,
     ).to(DEVICE)
-    model.load_state_dict(checkpoint["model_state_dict"])  # no prefix stripping needed anymore
+    
+    # Load saved state dict
+    model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    # Load scaler
-    with open(SCALER_PATH, "rb") as f:
-        scaler = pickle.load(f)
-
-    print(f"✓ Model loaded: input_size={checkpoint['input_size']}, "
-        f"hidden_size={checkpoint['hidden_size']}, "
-        f"num_layers={checkpoint['num_layers']}")
-    print(f"✓ Scaler expects {scaler.n_features_in_} features")
+    print(f"✓ Model loaded from {MODEL_PATH}")
+    print(f"  Architecture: {MODEL_TYPE.upper()}")
+    print(f"  Input size: {INPUT_SIZE}, Hidden: {HIDDEN_SIZE}, Layers: {NUM_LAYERS}")
 except Exception as e:
     logger.error(f"Failed to load model: {e}")
     raise
 
 # --- Load scaler ---
 try:
-    scaler = joblib.load(SCALER_PATH)
-    logger.info(f"Scaler loaded from {SCALER_PATH}")
+    with open(SCALER_PATH, "rb") as f:
+        scaler = pickle.load(f)
+    
+    logger.info(f"✓ Scaler loaded from {SCALER_PATH}")
+    logger.info(f"  Scaler expects {scaler.n_features_in_} features")
 except FileNotFoundError:
     logger.error(f"Scaler not found at {SCALER_PATH}")
     logger.error("The scaler must be saved during training.")
@@ -120,8 +127,8 @@ def compute_reconstruction_error(x):
     """Compute reconstruction error using the autoencoder."""
     try:
         with torch.no_grad():
-            # Forward pass: returns (reconstructed, encoder_hidden, encoder_cell)
-            reconstructed, _, _ = model(x)
+            # Forward pass through AnomalyDetector returns only reconstructed tensor
+            reconstructed = model(x)
         
         # Compute MSE between input and reconstruction
         mse = torch.mean((x - reconstructed) ** 2, dim=(1, 2))  # Average over time and features

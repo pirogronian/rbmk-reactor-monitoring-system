@@ -254,15 +254,17 @@ class AnomalyTrainer:
                 torch.save(
                     {
                         "epoch": epoch + 1,
-                        "model_state_dict": self.model.autoencoder.state_dict(),
+                        "model_state_dict": self.model.state_dict(),
                         "optimizer_state_dict": self.optimizer.state_dict(),
                         "val_loss": val_loss,
                     },
                     best_model_path,
-                    scaler_path = checkpoint_path / "scaler.pkl"
-                    with open(scaler_path, "wb") as f:
-                        pickle.dump(self.scaler, f)
                 )
+                
+                # Save scaler separately
+                scaler_path = checkpoint_path / "scaler.pkl"
+                with open(scaler_path, "wb") as f:
+                    pickle.dump(self.scaler, f)
                 print(f"  ✓ New best model saved (val_loss: {val_loss:.6f})")
 
             else:

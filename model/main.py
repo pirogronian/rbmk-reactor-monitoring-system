@@ -296,6 +296,7 @@ def main(args):
             model=model,
             train_loader=train_loader,
             val_loader=val_loader,
+            scaler=data_loader.scaler,
             lr=args.learning_rate,
             weight_decay=args.weight_decay,
             device=device,
